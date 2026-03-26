@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2025-2026 S5 2nd Term Test Coverage</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 列表展開/收合動畫 */
+        .accordion-content {
+            transition: max-height 0.4s ease-in-out, opacity 0.4s ease-in-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+        .accordion-content.open {
+            max-height: 800px; 
+            opacity: 1;
+        }
+        .chevron {
+            transition: transform 0.3s ease;
+        }
+        .chevron.rotate {
+            transform: rotate(180deg);
+        }
+
+        /* 遊戲按鈕過渡動畫 */
+        .game-btn {
+            transition: all 0.2s ease-in-out;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.25;
+        }
+        .selected { background-color: #6366f1; color: white; border-color: #6366f1; }
+        .matched { background-color: #22c55e; color: white; border-color: #22c55e; opacity: 0.7; pointer-events: none; }
+        .error { background-color: #ef4444; color: white; border-color: #ef4444; }
+
+        /* 文法表格樣式 */
+        .grammar-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+        .grammar-table th, .grammar-table td { padding: 0.5rem; border-bottom: 1px solid #e5e7eb; text-align: left; vertical-align: top; font-size: 0.875rem; }
+        .grammar-table th { background-color: #f8fafc; font-weight: 600; color: #475569; }
+        @media (max-width: 640px) {
+            .grammar-table th, .grammar-table td { font-size: 0.75rem; padding: 0.4rem; }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 font-sans antialiased min-h-screen pb-10">
+
+    <div class="max-w-4xl mx-auto p-3 sm:p-6 lg:p-8">
+        <!-- Header -->
+        <header class="mb-6 text-center">
+            <h1 class="text-2xl sm:text-3xl font-bold text-indigo-700 mb-2">S5 英文考試重點複習</h1>
+            <p class="text-gray-500 text-xs sm:text-sm">2025-2026 2nd Term Test Coverage</p>
+        </header>
+
+        <!-- 分頁導航 (Tabs) - 更新為三個選項 -->
+        <div class="flex border-b border-gray-200 mb-6 bg-white rounded-t-xl overflow-hidden shadow-sm flex-col sm:flex-row">
+            <button id="tabListBtn" onclick="switchTab('list')" class="flex-1 py-3 text-center text-sm sm:text-base font-bold text-indigo-700 border-l-4 sm:border-l-0 sm:border-b-2 border-indigo-700 bg-indigo-50/30 transition-colors">
+                📚 詞彙列表
+            </button>
+            <button id="tabGameBtn" onclick="switchTab('game')" class="flex-1 py-3 text-center text-sm sm:text-base font-medium text-gray-500 hover:text-indigo-600 hover:bg-gray-50 transition-colors border-t border-gray-100 sm:border-t-0">
+                🎮 隨機配對
+            </button>
+            <button id="tabGrammarBtn" onclick="switchTab('grammar')" class="flex-1 py-3 text-center text-sm sm:text-base font-medium text-gray-500 hover:text-indigo-600 hover:bg-gray-50 transition-colors border-t border-gray-100 sm:border-t-0">
+                📝 文法筆記
+            </button>
+        </div>
+
+        <!-- ==================== 分頁 1: 詞彙列表 ==================== -->
+        <div id="listView">
+            <div class="mb-6 relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </div>
+                <input type="text" id="searchInput" 
+                    class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl leading-5 bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm shadow-sm transition duration-150" 
+                    placeholder="搜尋英文單字或中文意思...">
+            </div>
+            <div id="vocabList" class="space-y-3"></div>
+            <div id="noResults" class="hidden text-center py-10 text-gray-500">
+                <p>找不到符合的單字</p>
+            </div>
+        </div>
+
+        <!-- ==================== 分頁 2: 字詞配對遊戲 ==================== -->
+        <div id="gameView" class="hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-3 sm:p-8">
+                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 gap-3">
+                    <div class="text-center sm:text-left">
+                        <h2 class="text-lg sm:text-xl font-bold text-gray-800">隨機配對測驗</h2>
+                        <p class="text-xs sm:text-sm text-gray-500 mt-1">點擊一個英文單字，再點擊其對應的中文意思。</p>
+                    </div>
+                    <button onclick="initGame()" class="flex items-center gap-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 px-4 py-2 rounded-lg font-medium transition-colors text-sm w-full sm:w-auto justify-center">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        手動刷新
+                    </button>
+                </div>
+                <div class="grid grid-cols-2 gap-2 sm:gap-6">
+                    <div class="bg-indigo-50/50 p-2 sm:p-4 rounded-xl border border-indigo-100 flex flex-col">
+                        <h3 class="text-center font-semibold text-indigo-800 mb-3 pb-2 border-b border-indigo-200 text-sm sm:text-base">Word (英文)</h3>
+                        <div id="gameWords" class="space-y-2 sm:space-y-3 flex-1 flex flex-col justify-between"></div>
+                    </div>
+                    <div class="bg-emerald-50/50 p-2 sm:p-4 rounded-xl border border-emerald-100 flex flex-col">
+                        <h3 class="text-center font-semibold text-emerald-800 mb-3 pb-2 border-b border-emerald-200 text-sm sm:text-base">Meaning (意思)</h3>
+                        <div id="gameMeanings" class="space-y-2 sm:space-y-3 flex-1 flex flex-col justify-between"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== 分頁 3: 文法筆記 ==================== -->
+        <div id="grammarView" class="hidden space-y-6">
+            
+            <!-- Unit 28 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-purple-600 px-5 py-3 text-white">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                        Unit 28: Connectives (連接詞)
+                    </h2>
+                </div>
+                <div class="p-4 sm:p-6 space-y-4">
+                    <p class="text-sm text-gray-600 mb-2">用於連接句子、段落，使文章結構更連貫。包含你補充的手寫筆記！</p>
+                    <table class="grammar-table">
+                        <tr>
+                            <th class="w-1/3">功能 (Function)</th>
+                            <th>常用連接詞 (Connectives)</th>
+                        </tr>
+                        <tr>
+                            <td>➕ <b>補充資訊 (Add info)</b></td>
+                            <td><span class="text-purple-700 font-semibold">Also, In addition, Besides this, Furthermore, Moreover, What's more</span></td>
+                        </tr>
+                        <tr>
+                            <td>🔢 <b>順序/列舉 (Sequence)</b></td>
+                            <td><span class="text-purple-700 font-semibold">Firstly, secondly, at first, next, finally, in the end, for one thing...</span><br>
+                                <span class="text-xs text-gray-500 bg-gray-100 px-1 rounded">手寫筆記</span> To begin with, first of all, lastly</td>
+                        </tr>
+                        <tr>
+                            <td>➡️ <b>表示結果 (Give results)</b></td>
+                            <td><span class="text-purple-700 font-semibold">Consequently, As a result, As a consequence, For this reason, Therefore, Thus, Hence, so</span></td>
+                        </tr>
+                        <tr>
+                            <td>🪞 <b>表示相似 (Similarity)</b></td>
+                            <td><span class="text-purple-700 font-semibold">Similarly, In a similar way, In the same way</span></td>
+                        </tr>
+                        <tr>
+                            <td>⚡ <b>表示對比 (Contrast)</b></td>
+                            <td><span class="text-purple-700 font-semibold">On the other hand, On the contrary, however, in contrast, nonetheless</span><br>
+                                <span class="text-xs text-gray-500 bg-gray-100 px-1 rounded">其他</span> On second thoughts (改變主意), At the same time (同時)</td>
+                        </tr>
+                        <tr>
+                            <td>❗ <b>強調語氣 (Emphasize)</b></td>
+                            <td><span class="text-purple-700 font-semibold">Indeed, In fact, Actually</span><br>
+                                <span class="text-xs text-gray-500 bg-gray-100 px-1 rounded">手寫筆記</span> Obviously (明顯地), undoubtedly (毫無疑問地)</td>
+                        </tr>
+                        <tr>
+                            <td>🏁 <b>總結結尾 (Conclusion)</b></td>
+                            <td><span class="text-purple-700 font-semibold">To conclude, In conclusion, To sum up, In short, In summary</span><br>
+                                <span class="text-xs text-gray-500 bg-gray-100 px-1 rounded">手寫筆記</span> All in all, Overall, to recap</td>
+                        </tr>
+                        <tr>
+                            <td>💬 <b>引出話題 / 表達觀點</b></td>
+                            <td><span class="text-purple-700 font-semibold">To be honest / Frankly</span> (老實說)<br>
+                                <span class="text-purple-700 font-semibold">As far as I know</span> (據我所知)<br>
+                                <span class="text-purple-700 font-semibold">Regarding... / Speaking of...</span> (關於... / 說到...)</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Unit 25 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-rose-500 px-5 py-3 text-white">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                        Unit 25: Expressing Purpose (表達目的)
+                    </h2>
+                </div>
+                <div class="p-4 sm:p-6 space-y-5">
+                    
+                    <!-- 區塊 1 -->
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">1. 為了... (To / In order to / So as to)</h3>
+                        <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                            <li><span class="font-mono bg-gray-100 px-1">to + verb</span> (最常見): She came <span class="text-rose-600 font-bold">to help</span> us.</li>
+                            <li><span class="font-mono bg-gray-100 px-1">in order to / so as to</span> (較正式): He took a taxi <span class="text-rose-600 font-bold">in order to</span> get there on time.</li>
+                            <li>⚠️ <b>否定用法注意</b>：必須是 <span class="text-rose-600 font-bold">in order not to</span> 或 <span class="text-rose-600 font-bold">so as not to</span>。(不可以只寫 not to)</li>
+                            <li><span class="font-mono bg-gray-100 px-1">in order that / so (that) + 子句</span>: I exercise <span class="text-rose-600 font-bold">so that I can</span> keep fit. (後方常接 can/will/could)</li>
+                        </ul>
+                    </div>
+
+                    <!-- 區塊 2 -->
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">2. 事物的用途 (For + Noun / V-ing)</h3>
+                        <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                            <li>表達物品功能：We use this key <span class="text-rose-600 font-bold">to open / for opening</span> the cupboard. (兩者皆可)</li>
+                            <li>⚠️ <b>表達「人」的目的</b>時，不可用 for + V-ing。<br>
+                                ✅ She went to a restaurant <span class="text-green-600 font-bold">for lunch</span>.<br>
+                                ❌ She went to a restaurant <span class="text-red-500 line-through">for having lunch</span>.
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- 區塊 3 -->
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">3. 以防萬一 / 避免 (In case / Prevent)</h3>
+                        <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                            <li><span class="font-mono bg-gray-100 px-1">in case</span> (以防): Take an umbrella <span class="text-rose-600 font-bold">in case</span> it rains. (⚠️ 後面不用 will，用現在式代未來)</li>
+                            <li>表達目的的動詞：<span class="text-rose-600 font-bold">enable</span> (使能夠), <span class="text-rose-600 font-bold">avoid</span> (避免 + V-ing), <span class="text-rose-600 font-bold">prevent</span> (阻止).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unit 24 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-blue-600 px-5 py-3 text-white">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                        Unit 24: Cause & Effect (因果關係)
+                    </h2>
+                </div>
+                <div class="p-4 sm:p-6 space-y-5">
+                    
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">1. 名詞與動詞用法 (Nouns & Verbs)</h3>
+                        <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                            <li><b>名詞：</b>the <span class="text-blue-600 font-bold">reason for</span> / the <span class="text-blue-600 font-bold">cause of</span> / the <span class="text-blue-600 font-bold">result of</span></li>
+                            <li><b>動詞：</b><br>
+                                A <span class="text-blue-600 font-bold">resulted in / led to / caused</span> B (A 導致 B)<br>
+                                B <span class="text-blue-600 font-bold">resulted from</span> A (B 起因於 A)
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">2. 因為 / 由於 (Prepositions & Conjunctions)</h3>
+                        <table class="grammar-table mt-2">
+                            <tr>
+                                <th class="w-1/2">接名詞 (Prepositions)</th>
+                                <th>接子句 (Conjunctions)</th>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span class="text-blue-600 font-bold">due to / owing to / because of / on account of</span> + Noun<br>
+                                    <span class="text-xs text-gray-500">例: The delay was due to the strike.</span>
+                                </td>
+                                <td>
+                                    <span class="text-blue-600 font-bold">because / since / as / for</span> + 子句<br>
+                                    <span class="text-xs text-gray-500">例: I went to bed early because I was tired.</span><br>
+                                    ⚠️ <span class="text-red-500">For</span> 不可放在句首。
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <span class="text-blue-600 font-bold">out of</span> (出於情感) 例: out of pity<br>
+                                    <span class="text-blue-600 font-bold">through</span> (由於) 例: through carelessness
+                                </td>
+                                <td>
+                                    <span class="text-blue-600 font-bold">Now (that) / Seeing that</span> (既然)<br>
+                                    <span class="text-xs text-gray-500">例: Seeing that it's raining, we'd better cancel.</span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">3. 太...而不能 / 足夠... (Too / Enough)</h3>
+                        <ul class="list-disc pl-5 space-y-1 text-sm text-gray-700">
+                            <li>He has <span class="text-blue-600 font-bold">too much pride to</span> accept help. (他太驕傲而無法接受幫助)</li>
+                            <li>This book is <span class="text-blue-600 font-bold">not easy enough for me to</span> read.</li>
+                            <li>⚠️ 注意：句尾不要加上多餘的代名詞 (❌ The shirt is too large for me to wear <b>it</b>.)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unit 23 -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="bg-emerald-600 px-5 py-3 text-white">
+                    <h2 class="text-lg font-bold flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                        Unit 23: Adverbials (副詞與狀語)
+                    </h2>
+                </div>
+                <div class="p-4 sm:p-6 space-y-5">
+                    
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">1. 表達方式 (Manner)</h3>
+                        <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                            <li><b>副詞 (Adverb)：</b>通常字尾加 <span class="font-mono bg-gray-100 px-1">-ly</span> (fluent ➔ fluently)。</li>
+                            <li><b>片語 (Phrases)：</b><br>
+                                <span class="text-emerald-700 font-bold">in a ... way / manner</span> (例: in his own way)<br>
+                                <span class="text-emerald-700 font-bold">with / without + Noun</span> (例: with sympathy, without delay)
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">2. Like vs. As vs. As if</h3>
+                        <table class="grammar-table mt-2">
+                            <tr>
+                                <th class="w-1/5">字詞</th>
+                                <th>用法與例句</th>
+                            </tr>
+                            <tr>
+                                <td><b>like</b> (像)</td>
+                                <td>介係詞，後接名詞/代名詞/V-ing。<br><span class="text-xs text-gray-500">例: She cried <span class="text-emerald-700 font-bold">like a child</span>.</span></td>
+                            </tr>
+                            <tr>
+                                <td><b>as</b> (如/作為)</td>
+                                <td>1. 連接詞，接子句：I put it back <span class="text-emerald-700 font-bold">as you told me to</span>.<br>2. 介係詞，表職業身分：He worked <span class="text-emerald-700 font-bold">as a teacher</span>.</td>
+                            </tr>
+                            <tr>
+                                <td><b>as if / as though</b> (彷彿)</td>
+                                <td>
+                                    若與事實不符，需使用<b>假設語氣 (過去式)</b>。<br>
+                                    <span class="text-xs text-gray-500">例: You are talking to me <span class="text-emerald-700 font-bold">as if you were</span> my mother.</span><br>
+                                    若動作發生在更早之前，用<b>過去完成式</b> (as if he had witnessed it).
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">3. 手段與工具 (Means & Instruments)</h3>
+                        <ul class="list-disc pl-5 space-y-2 text-sm text-gray-700">
+                            <li><span class="text-emerald-700 font-bold">with</span> (用...工具): wrap the gift <span class="font-semibold">with special paper</span>.</li>
+                            <li><span class="text-emerald-700 font-bold">by</span> (藉由...方法/交通): <span class="font-semibold">by bus, by train, by breaking the lock</span>. (⚠️ 走路是 <span class="text-red-500 font-bold">on foot</span>)</li>
+                            <li><span class="text-emerald-700 font-bold">through</span> (透過): climb <span class="font-semibold">through a window</span>.</li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-bold text-gray-800 border-b pb-1 mb-2">4. 必背固定搭配 (Collocations)</h3>
+                        <p class="text-sm text-gray-600 mb-2">常考的介係詞搭配，請務必熟記：</p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
+                            <div class="bg-gray-100 p-2 rounded"><b>by</b> mistake (不小心)</div>
+                            <div class="bg-gray-100 p-2 rounded"><b>by</b> chance (偶然)</div>
+                            <div class="bg-gray-100 p-2 rounded"><b>by</b> hand (手工)</div>
+                            <div class="bg-gray-100 p-2 rounded"><b>in</b> a hurry (匆忙)</div>
+                            <div class="bg-gray-100 p-2 rounded"><b>in</b> pencil (用鉛筆)</div>
+                            <div class="bg-gray-100 p-2 rounded"><b>on</b> purpose (故意)</div>
+                            <div class="bg-gray-100 p-2 rounded"><b>on</b> foot (走路)</div>
+                            <div class="bg-gray-100 p-2 rounded"><b>with</b> care (小心地)</div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        // 考試詞彙數據庫
+        const vocabData = [
+            { word: "attune (to)", pos: "v.", en: "make sbd know or understand", zh: "使適應 / 使理解", cambridgeEn: "to make someone able to understand or recognize something", cambridgeZh: "使理解，使適應", otherPos: "attuned (adj.)", otherMeanings: "無", ex: "A good nurse has to be attuned to the needs of the patients.", exZh: "一名優秀的護士必須體察病人的需求。" },
+            { word: "aware (of)", pos: "adj.", en: "knowing that sth exist", zh: "意識到的", cambridgeEn: "knowing that something exists", cambridgeZh: "意識到的；明白的", otherPos: "awareness (n.)", otherMeanings: "無", ex: "I wasn't even aware that he was ill.", exZh: "我甚至沒有意識到他病了。" },
+            { word: "beverage", pos: "n.", en: "a drink", zh: "飲料", cambridgeEn: "a drink of any type", cambridgeZh: "（各類）飲料", otherPos: "無", otherMeanings: "無", ex: "Hot beverages include tea, coffee, and hot chocolate.", exZh: "熱飲料包括茶、咖啡和熱巧克力。" },
+            { word: "bizarre", pos: "adj.", en: "strange", zh: "奇異的 / 古怪的", cambridgeEn: "very strange and unusual", cambridgeZh: "怪誕的；異乎尋常的", otherPos: "bizarrely (adv.)", otherMeanings: "無", ex: "That situation was too bizarre for me!", exZh: "那個情況對我來說太古怪了！" },
+            { word: "capacity", pos: "n.", en: "the total amount to be contained / ability", zh: "總容量 / 能力", cambridgeEn: "the total amount that can be contained, or ability", cambridgeZh: "容量；能力", otherPos: "capacious (adj.)", otherMeanings: "職位", ex: "The stadium has a seating capacity of 50,000.", exZh: "這座體育場的座位容量為五萬人。" },
+            { word: "coincidence", pos: "n.", en: "chance / things that just happen at the same time", zh: "巧合", cambridgeEn: "an occasion when two or more similar things happen at the same time", cambridgeZh: "同時發生；巧合", otherPos: "coincide (v.), coincidental (adj.)", otherMeanings: "無", ex: "You chose exactly the same topic as us - what a coincidence!", exZh: "你選的題目和我們完全一樣——真是太巧了！" },
+            { word: "distress", pos: "n.", en: "extreme sadness/pain", zh: "極度的悲傷或痛苦", cambridgeEn: "a feeling of extreme worry, sadness, or pain", cambridgeZh: "悲傷；痛苦；危難", otherPos: "distress (v.), distressed (adj.)", otherMeanings: "遇險", ex: "Many of the horses were showing signs of distress at the end of the race.", exZh: "許多馬在比賽結束時表現出痛苦的跡象。" },
+            { word: "dread", pos: "v.", en: "fear", zh: "害怕 / 恐懼", cambridgeEn: "to feel extremely worried or frightened", cambridgeZh: "感到恐懼；害怕", otherPos: "dread (n.), dreadful (adj.)", otherMeanings: "無", ex: "He's dreading the exam - he's sure he's going to fail.", exZh: "他非常恐懼這次考試——他確信自己會不及格。" },
+            { word: "erratic", pos: "adj.", en: "irregular/ uncertain / unexpected", zh: "飄忽不定的 / 不穩定的", cambridgeEn: "moving or behaving in a way that is not regular or expected", cambridgeZh: "不規則的；飄忽不定的", otherPos: "erratically (adv.)", otherMeanings: "無", ex: "He drove in an erratic course down the road.", exZh: "他在路上開車飄忽不定。" },
+            { word: "established", pos: "v.", en: "set up", zh: "建立 / 創立", cambridgeEn: "to start a company or organization", cambridgeZh: "建立；創立", otherPos: "established (adj.), establishment (n.)", otherMeanings: "查實", ex: "There are established procedures for dealing with emergencies.", exZh: "處理緊急情況有既定的程序。" },
+            { word: "expectation", pos: "n.", en: "what you believe will happen", zh: "期望", cambridgeEn: "the feeling or belief that something will happen", cambridgeZh: "期盼；期望", otherPos: "expect (v.), expectant (adj.)", otherMeanings: "預期", ex: "The holiday lived up to all our expectations.", exZh: "這次假期符合了我們所有的期望。" },
+            { word: "exploitation", pos: "n.", en: "using someone unfairly", zh: "剝削 / 不公平利用", cambridgeEn: "the act of using someone unfairly for your advantage", cambridgeZh: "剝削，榨取", otherPos: "exploit (v./n.)", otherMeanings: "開發利用", ex: "Marx wrote about the exploitation of the workers.", exZh: "馬克思寫過關於剝削工人的文章。" },
+            { word: "genuine", pos: "adj.", en: "real", zh: "真正的 / 真實的", cambridgeEn: "If something is genuine, it is real", cambridgeZh: "真正的；真誠的", otherPos: "genuinely (adv.)", otherMeanings: "真誠的", ex: "If it is a genuine painting, it will sell for millions.", exZh: "如果這是真正的畫作，它將賣出數百萬。" },
+            { word: "grateful", pos: "adj.", en: "thankful", zh: "感激的", cambridgeEn: "showing or expressing thanks", cambridgeZh: "感激的", otherPos: "gratitude (n.), gratefully (adv.)", otherMeanings: "無", ex: "I'm so grateful for all that you've done.", exZh: "我非常感激你所做的一切。" },
+            { word: "hands on deck", pos: "n. phr.", en: "available staff", zh: "幫手 / 可用員工", cambridgeEn: "people who are available to help", cambridgeZh: "全體出動幫忙", otherPos: "無", otherMeanings: "無", ex: "We need all hands on deck if we're going to be ready for the party.", exZh: "如果我們要為派對做好準備，我們需要全體出動幫忙。" },
+            { word: "hands-on", pos: "adj.", en: "actively involved in doing the work", zh: "親身實踐的", cambridgeEn: "closely involved in managing and organizing", cambridgeZh: "親身實踐的", otherPos: "無", otherMeanings: "無", ex: "She's very much a hands-on manager.", exZh: "她是一位非常注重親身實踐的經理。" },
+            { word: "infuriated", pos: "adj.", en: "angry", zh: "極度生氣的", cambridgeEn: "extremely angry", cambridgeZh: "極度憤怒的", otherPos: "infuriate (v.), infuriating (adj.)", otherMeanings: "無", ex: "His sexist attitude infuriates me.", exZh: "他性別歧視的態度讓我極度生氣。" },
+            { word: "innovative", pos: "adj.", en: "creative / using new ideas", zh: "創新的", cambridgeEn: "using new methods or ideas", cambridgeZh: "創新的", otherPos: "innovate (v.), innovation (n.)", otherMeanings: "無", ex: "She was an imaginative and innovative manager.", exZh: "她是一位富有想像力且創新的經理。" },
+            { word: "intriguing", pos: "adj.", en: "interesting because unusual", zh: "引起好奇心的 / 迷人的", cambridgeEn: "very interesting because of being unusual", cambridgeZh: "引人入勝的；神秘的", otherPos: "intrigue (v./n.)", otherMeanings: "無", ex: "She has a really intriguing personality.", exZh: "她的個性真的非常迷人。" },
+            { word: "keep an eye on", pos: "v. phr.", en: "watch / take care of", zh: "留意 / 照看", cambridgeEn: "to watch or look after something", cambridgeZh: "照看；留意", otherPos: "無", otherMeanings: "監視", ex: "Keep an eye on your brother while I'm out, please.", exZh: "我出去時，請幫我照看一下你弟弟。" },
+            { word: "legitimate", pos: "adj.", en: "legal / acceptable", zh: "合法的 / 正當的", cambridgeEn: "allowed by law, or acceptable", cambridgeZh: "合法的；正當的", otherPos: "legitimize (v.), legitimacy (n.)", otherMeanings: "無", ex: "The army must give power back to the legitimate government.", exZh: "軍隊必須將權力交還給合法的政府。" },
+            { word: "meticulous", pos: "adj.", en: "careful/ detailed", zh: "一絲不苟的 / 仔細的", cambridgeEn: "very careful and with great attention to detail", cambridgeZh: "嚴謹的，一絲不苟的", otherPos: "meticulously (adv.)", otherMeanings: "無", ex: "Many hours of meticulous preparation have gone into writing the book.", exZh: "寫這本書投入了數小時一絲不苟的準備工作。" },
+            { word: "narrowly", pos: "adv.", en: "just / by a small amount", zh: "勉強地 / 差一點點地", cambridgeEn: "only by a small amount", cambridgeZh: "勉強地；差一點兒", otherPos: "narrow (v./adj.)", otherMeanings: "狹隘地", ex: "She narrowly missed winning the race.", exZh: "她勉強錯失了贏得比賽的機會。" },
+            { word: "off-limits", pos: "adj.", en: "not allowed to enter", zh: "禁止進入的", cambridgeEn: "not allowed to enter", cambridgeZh: "禁止進入的", otherPos: "無", otherMeanings: "禁止討論的", ex: "The staff room is off-limits to students.", exZh: "教職員室禁止學生進入。" },
+            { word: "on par with", pos: "adj. phr.", en: "the same as", zh: "與...同等", cambridgeEn: "the same as or equal to", cambridgeZh: "與…不相上下", otherPos: "無", otherMeanings: "無", ex: "The new computer is on a par with the best models on the market.", exZh: "這台新電腦與市場上最好的型號同等。" },
+            { word: "participant", pos: "n.", en: "people joining an event", zh: "參與者", cambridgeEn: "a person who takes part in an activity", cambridgeZh: "參與者", otherPos: "participate (v.), participation (n.)", otherMeanings: "無", ex: "The games involve thousands of participants.", exZh: "這些比賽有數千名參與者。" },
+            { word: "persist", pos: "v.", en: "continue to exist", zh: "持續存在 / 堅持", cambridgeEn: "continues to exist", cambridgeZh: "持續存在；堅持", otherPos: "persistence (n.), persistent (adj.)", otherMeanings: "無", ex: "If the pain persists, consult a doctor.", exZh: "如果疼痛持續，請就醫。" },
+            { word: "previously", pos: "adv.", en: "before", zh: "先前地", cambridgeEn: "before the present time", cambridgeZh: "以前地，先前地", otherPos: "previous (adj.)", otherMeanings: "無", ex: "She was previously employed as a tour guide.", exZh: "她先前受僱為導遊。" },
+            { word: "reckless", pos: "adj.", en: "acting without thinking about the risk/result", zh: "魯莽的", cambridgeEn: "doing something dangerous and not worrying about risks", cambridgeZh: "魯莽的；不顧後果的", otherPos: "recklessly (adv.), recklessness (n.)", otherMeanings: "無", ex: "He was found guilty of reckless driving.", exZh: "他被判魯莽駕駛罪名成立。" },
+            { word: "redeemable", pos: "adj.", en: "able to be exchanged for money/ things", zh: "可兌換的", cambridgeEn: "that can be exchanged for goods or cash", cambridgeZh: "可兌換的", otherPos: "redeem (v.), redemption (n.)", otherMeanings: "可挽回的", ex: "You will find the voucher attached, redeemable at any of our branches.", exZh: "您會發現附上的優惠券可以在我們任何一家分店兌換。" },
+            { word: "remaining", pos: "adj.", en: "(things) left or continue to exist", zh: "剩餘的", cambridgeEn: "continuing to exist or be left", cambridgeZh: "剩下的；其餘的", otherPos: "remain (v.), remainder (n.)", otherMeanings: "無", ex: "Mix in half the butter and keep the remaining butter for later.", exZh: "拌入一半的奶油，剩下的留到以後用。" },
+            { word: "safeguard", pos: "v.", en: "protect", zh: "保護", cambridgeEn: "to protect something from harm", cambridgeZh: "保護，保衛", otherPos: "safeguard (n. 防護措施)", otherMeanings: "無", ex: "The union safeguards the interests of all its members.", exZh: "工會保護所有會員的利益。" },
+            { word: "skeleton staff", pos: "n. phr.", en: "the smallest number of staff", zh: "基本骨幹人員", cambridgeEn: "the smallest number of people needed to operate", cambridgeZh: "維持運作的最少人員", otherPos: "無", otherMeanings: "無", ex: "The company operates with a skeleton staff during the Christmas holidays.", exZh: "公司在聖誕假期期間僅以最少的基本員工運作。" },
+            { word: "source", pos: "n.", en: "where sth comes from / origin", zh: "來源", cambridgeEn: "the place something comes from", cambridgeZh: "來源，出處", otherPos: "source (v. 獲得)", otherMeanings: "消息來源", ex: "Oranges are a good source of vitamin C.", exZh: "橘子是維生素C的良好來源。" },
+            { word: "spark", pos: "v.", en: "cause", zh: "引發", cambridgeEn: "to cause the start of something", cambridgeZh: "引起，導致", otherPos: "spark (n. 火花)", otherMeanings: "無", ex: "This proposal will almost certainly spark another strike.", exZh: "這項提議幾乎肯定會引發另一次罷工。" },
+            { word: "stipulate", pos: "v.", en: "say what must be done", zh: "規定 / 明確要求", cambridgeEn: "to say exactly how something must be done", cambridgeZh: "規定；明確說明", otherPos: "stipulation (n.)", otherMeanings: "無", ex: "The rules of the competition stipulate that entrants must be over 18.", exZh: "比賽規則規定參賽者必須年滿18歲。" },
+            { word: "stranded", pos: "adj.", en: "stuck in a place/ couldn't leave", zh: "滯留的", cambridgeEn: "unable to leave somewhere", cambridgeZh: "滯留的；被困住的", otherPos: "strand (v.)", otherMeanings: "擱淺的", ex: "He left me stranded in town with no car and no money for a bus.", exZh: "他把我滯留在鎮上，沒有車，也沒有錢搭公車。" },
+            { word: "substantial", pos: "adj.", en: "large in number or importance", zh: "大量的 / 實質的", cambridgeEn: "large in size, value, or importance", cambridgeZh: "大的；可觀的；重大的", otherPos: "substance (n.), substantially (adv.)", otherMeanings: "無", ex: "The findings show a substantial difference between the opinions of men and women.", exZh: "調查結果顯示，男女的意見存在實質的差異。" },
+            { word: "supplies", pos: "n.", en: "things for use", zh: "補給品", cambridgeEn: "food or other things necessary", cambridgeZh: "生活必需品；補給", otherPos: "supply (v./n.)", otherMeanings: "無", ex: "The refugees are urgently in need of food and medical supplies.", exZh: "難民急需食物和醫療補給品。" },
+            { word: "telltale", pos: "adj.", en: "showing a secret / clear", zh: "暴露出秘密的", cambridgeEn: "allowing a secret to become known", cambridgeZh: "洩露秘密的", otherPos: "telltale (n. 洩密者)", otherMeanings: "無", ex: "She found lipstick on his shirts - the telltale sign that he was having an affair.", exZh: "她在他的襯衫上發現了口紅印——這暴露出他有外遇的真相。" },
+            { word: "temporary", pos: "adj.", en: "for a short time", zh: "暫時的", cambridgeEn: "not lasting for very long", cambridgeZh: "暫時的，臨時的", otherPos: "temporarily (adv.)", otherMeanings: "無", ex: "The ceasefire will only provide a temporary solution to the crisis.", exZh: "停火只能為危機提供暫時的解決方案。" },
+            { word: "turnover", pos: "n.", en: "amount of business that a company does", zh: "營業額", cambridgeEn: "the amount of business", cambridgeZh: "營業額", otherPos: "無", otherMeanings: "人員流動率", ex: "The business has an annual turnover of £50,000.", exZh: "這家企業的年營業額為五萬英鎊。" },
+            { word: "unforeseen", pos: "adj.", en: "not expected", zh: "未預料到的", cambridgeEn: "not expected", cambridgeZh: "未預見到的", otherPos: "foresee (v.), foreseeable (adj.)", otherMeanings: "無", ex: "Due to unforeseen circumstances, the cost has risen by 20 percent.", exZh: "由於無法預料的情況，費用增加了20%。" },
+            { word: "unrivalled", pos: "adj.", en: "having nothing equal or better", zh: "無與倫比的", cambridgeEn: "having no equal", cambridgeZh: "無與倫比的", otherPos: "rival (n./v.)", otherMeanings: "無", ex: "The museum boasts an unrivalled collection of French art.", exZh: "這家博物館以其無與倫比的法國藝術收藏而自豪。" },
+            { word: "urgency", pos: "n.", en: "sth important or need attention immediately", zh: "緊急 (性)", cambridgeEn: "the quality of being very important and needing attention immediately", cambridgeZh: "緊急；急迫", otherPos: "urgent (adj.), urge (v.)", otherMeanings: "無", ex: "She didn't understand the urgency of the situation.", exZh: "她不了解情況的緊急性。" },
+            { word: "valuable", pos: "adj.", en: "precious/ important", zh: "珍貴的", cambridgeEn: "worth a lot of money, or very useful", cambridgeZh: "值錢的；有價值的", otherPos: "value (n./v.), valuably (adv.)", otherMeanings: "無", ex: "These antiques are extremely valuable.", exZh: "這些古董非常有價值。" },
+            { word: "variable", pos: "n.", en: "sth that can change", zh: "變數", cambridgeEn: "a number, amount, or situation that can change", cambridgeZh: "變數；可變因素", otherPos: "variable (adj.), vary (v.), variation (n.)", otherMeanings: "無", ex: "There are too many variables in the experiment.", exZh: "這個實驗中有太多的變數。" },
+            { word: "wreck", pos: "v.", en: "damage badly", zh: "嚴重破壞", cambridgeEn: "to destroy or badly damage something", cambridgeZh: "破壞；毀壞", otherPos: "wreck (n. 殘骸), wreckage (n.)", otherMeanings: "使失事", ex: "The explosion shattered nearby windows and wrecked two cars.", exZh: "爆炸震碎了附近的窗戶並破壞了兩輛車。" }
+        ];
+
+        vocabData.sort((a, b) => a.word.localeCompare(b.word));
+
+        // ==================== 分頁切換邏輯 (三頁版) ====================
+        function switchTab(tab) {
+            const views = {
+                list: document.getElementById('listView'),
+                game: document.getElementById('gameView'),
+                grammar: document.getElementById('grammarView')
+            };
+            const btns = {
+                list: document.getElementById('tabListBtn'),
+                game: document.getElementById('tabGameBtn'),
+                grammar: document.getElementById('tabGrammarBtn')
+            };
+
+            // 隱藏所有 view
+            Object.values(views).forEach(v => v.classList.add('hidden'));
+            
+            // 重置所有按鈕樣式
+            const inactiveClass = "flex-1 py-3 text-center text-sm sm:text-base font-medium text-gray-500 hover:text-indigo-600 hover:bg-gray-50 transition-colors border-t border-gray-100 sm:border-t-0";
+            const activeClass = "flex-1 py-3 text-center text-sm sm:text-base font-bold text-indigo-700 sm:border-b-2 border-indigo-700 bg-indigo-50/30 transition-colors";
+            
+            Object.keys(btns).forEach(key => {
+                // 清除舊的 active/inactive style
+                btns[key].className = inactiveClass;
+            });
+
+            // 顯示當前 view 並套用 active 樣式
+            views[tab].classList.remove('hidden');
+            btns[tab].className = activeClass;
+            
+            if(tab === 'list') {
+                btns[tab].classList.add('border-l-4', 'sm:border-l-0');
+            } else if (tab === 'game') {
+                btns[tab].classList.add('border-l-4', 'sm:border-l-0');
+                if(document.getElementById('gameWords').innerHTML === '') initGame();
+            } else if (tab === 'grammar') {
+                btns[tab].classList.add('border-l-4', 'sm:border-l-0');
+            }
+        }
+
+        // ==================== 列表渲染邏輯 ====================
+        const vocabListContainer = document.getElementById('vocabList');
+        const searchInput = document.getElementById('searchInput');
+        const noResults = document.getElementById('noResults');
+
+        function renderList(data) {
+            vocabListContainer.innerHTML = ''; 
+            if (data.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            data.forEach((item, index) => {
+                let posColor = 'bg-gray-100 text-gray-800 border-gray-200';
+                if (item.pos.includes('v.')) posColor = 'bg-red-50 text-red-700 border-red-200';
+                else if (item.pos.includes('n.')) posColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                else if (item.pos.includes('adj.')) posColor = 'bg-green-50 text-green-700 border-green-200';
+                else if (item.pos.includes('adv.')) posColor = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+
+                const cardHTML = `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer hover:shadow-md transition duration-200" onclick="toggleAccordion(${index})">
+                        <div class="px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-between">
+                            <div class="flex-1 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                                <h3 class="text-base sm:text-lg font-bold text-gray-900">${item.word}</h3>
+                                <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${posColor}">${item.pos}</span>
+                                    <span class="text-sm text-gray-600 font-medium">${item.zh}</span>
+                                </div>
+                            </div>
+                            <div class="ml-2 sm:ml-4 text-gray-400 shrink-0">
+                                <svg id="chevron-${index}" class="w-5 h-5 chevron" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                        </div>
+                        <div id="content-${index}" class="accordion-content bg-slate-50 border-t border-gray-100">
+                            <div class="px-4 py-4 sm:px-5 sm:py-5 space-y-4">
+                                <div class="flex flex-col sm:flex-row gap-4">
+                                    <div class="flex-1 bg-blue-50/50 p-3 rounded-lg border border-blue-100 shadow-sm">
+                                        <p class="text-xs font-semibold text-blue-800 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            考試簡易意思 (Exam)
+                                        </p>
+                                        <p class="text-sm font-medium text-gray-800">${item.en}</p>
+                                    </div>
+                                    <div class="flex-2 sm:w-2/3 bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
+                                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477-4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                                            劍橋詳細解釋 (Cambridge)
+                                        </p>
+                                        <p class="text-sm text-gray-800 mb-1"><span class="font-bold text-gray-400 mr-1">EN</span> ${item.cambridgeEn}</p>
+                                        <p class="text-sm text-gray-600"><span class="font-bold text-gray-400 mr-1">ZH</span> ${item.cambridgeZh}</p>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">其他詞性變化</p>
+                                        <p class="text-sm text-gray-800">${item.otherPos}</p>
+                                    </div>
+                                    <div class="bg-white p-3 rounded-lg border border-gray-100 shadow-sm">
+                                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">其他常見意思 (非本次重點)</p>
+                                        <p class="text-sm text-gray-800">${item.otherMeanings}</p>
+                                    </div>
+                                </div>
+                                <div class="bg-indigo-50/60 p-4 rounded-lg border border-indigo-100 mt-2">
+                                    <p class="text-xs font-semibold text-indigo-800 uppercase tracking-wider mb-2">Example / 例句</p>
+                                    <p class="text-sm text-gray-900 font-medium mb-1.5 leading-relaxed">"${item.ex}"</p>
+                                    <p class="text-sm text-indigo-700">${item.exZh}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                vocabListContainer.insertAdjacentHTML('beforeend', cardHTML);
+            });
+        }
+
+        let currentlyOpen = null;
+        window.toggleAccordion = function(index) {
+            const content = document.getElementById(`content-${index}`);
+            const chevron = document.getElementById(`chevron-${index}`);
+            if (currentlyOpen === index) {
+                content.classList.remove('open');
+                chevron.classList.remove('rotate');
+                currentlyOpen = null;
+                return;
+            }
+            if (currentlyOpen !== null) {
+                const oldContent = document.getElementById(`content-${currentlyOpen}`);
+                const oldChevron = document.getElementById(`chevron-${currentlyOpen}`);
+                if (oldContent && oldChevron) {
+                    oldContent.classList.remove('open');
+                    oldChevron.classList.remove('rotate');
+                }
+            }
+            content.classList.add('open');
+            chevron.classList.add('rotate');
+            currentlyOpen = index;
+        }
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const filteredData = vocabData.filter(item => {
+                return item.word.toLowerCase().includes(query) || 
+                       item.zh.includes(query) ||
+                       item.en.toLowerCase().includes(query) ||
+                       item.cambridgeZh.includes(query); 
+            });
+            currentlyOpen = null;
+            renderList(filteredData);
+        });
+
+        // ==================== 遊戲邏輯 ====================
+        const GAME_SIZE = 5;
+        let selectedWordBtn = null;
+        let selectedMeaningBtn = null;
+        let matchedCount = 0;
+
+        function initGame() {
+            const wordsContainer = document.getElementById('gameWords');
+            const meaningsContainer = document.getElementById('gameMeanings');
+            
+            wordsContainer.innerHTML = '';
+            meaningsContainer.innerHTML = '';
+            
+            selectedWordBtn = null;
+            selectedMeaningBtn = null;
+            matchedCount = 0;
+
+            const shuffledVocab = [...vocabData].sort(() => 0.5 - Math.random());
+            const selectedPairs = shuffledVocab.slice(0, GAME_SIZE);
+
+            let words = selectedPairs.map(item => ({ id: item.word, text: item.word }));
+            let meanings = selectedPairs.map(item => ({ id: item.word, text: item.zh })); 
+
+            words.sort(() => 0.5 - Math.random());
+            meanings.sort(() => 0.5 - Math.random());
+
+            words.forEach(w => {
+                const btn = document.createElement('button');
+                btn.className = 'game-btn w-full text-center px-1 py-3 sm:px-4 sm:py-3 rounded-lg border-2 border-gray-200 bg-white hover:border-indigo-400 font-bold text-gray-800 shadow-sm text-xs sm:text-base break-words min-h-[3.5rem] sm:min-h-[4rem]';
+                btn.textContent = w.text;
+                btn.dataset.id = w.id;
+                btn.onclick = () => handleWordClick(btn);
+                wordsContainer.appendChild(btn);
+            });
+
+            meanings.forEach(m => {
+                const btn = document.createElement('button');
+                btn.className = 'game-btn w-full text-center px-1 py-3 sm:px-4 sm:py-3 rounded-lg border-2 border-gray-200 bg-white hover:border-emerald-400 font-medium text-gray-700 shadow-sm text-xs sm:text-base break-words min-h-[3.5rem] sm:min-h-[4rem]';
+                btn.textContent = m.text;
+                btn.dataset.id = m.id;
+                btn.onclick = () => handleMeaningClick(btn);
+                meaningsContainer.appendChild(btn);
+            });
+        }
+
+        function handleWordClick(btn) {
+            if (btn.classList.contains('matched')) return;
+            if (selectedWordBtn) selectedWordBtn.classList.remove('selected');
+            selectedWordBtn = btn;
+            selectedWordBtn.classList.add('selected');
+            checkMatch();
+        }
+
+        function handleMeaningClick(btn) {
+            if (btn.classList.contains('matched')) return;
+            if (selectedMeaningBtn) selectedMeaningBtn.classList.remove('selected');
+            selectedMeaningBtn = btn;
+            selectedMeaningBtn.classList.add('selected');
+            checkMatch();
+        }
+
+        function checkMatch() {
+            if (selectedWordBtn && selectedMeaningBtn) {
+                const wordId = selectedWordBtn.dataset.id;
+                const meaningId = selectedMeaningBtn.dataset.id;
+
+                if (wordId === meaningId) {
+                    selectedWordBtn.classList.remove('selected');
+                    selectedMeaningBtn.classList.remove('selected');
+                    selectedWordBtn.classList.add('matched');
+                    selectedMeaningBtn.classList.add('matched');
+                    
+                    matchedCount++;
+                    selectedWordBtn = null;
+                    selectedMeaningBtn = null;
+
+                    if (matchedCount === GAME_SIZE) {
+                        setTimeout(() => {
+                            document.getElementById('gameWords').innerHTML = '<div class="text-center py-6 text-sm sm:text-base font-bold text-indigo-600">🎉 全對！載入下一組...</div>';
+                            document.getElementById('gameMeanings').innerHTML = '<div class="text-center py-6 text-sm sm:text-base font-bold text-emerald-600">🎉 全對！載入下一組...</div>';
+                            setTimeout(initGame, 1500);
+                        }, 400);
+                    }
+                } else {
+                    const wBtn = selectedWordBtn;
+                    const mBtn = selectedMeaningBtn;
+                    wBtn.classList.remove('selected');
+                    mBtn.classList.remove('selected');
+                    wBtn.classList.add('error');
+                    mBtn.classList.add('error');
+                    selectedWordBtn = null;
+                    selectedMeaningBtn = null;
+                    setTimeout(() => {
+                        wBtn.classList.remove('error');
+                        mBtn.classList.remove('error');
+                    }, 500);
+                }
+            }
+        }
+
+        // 初始執行
+        renderList(vocabData);
+    </script>
+</body>
+</html>
+
+
